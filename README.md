@@ -3,7 +3,7 @@
 
 Intercom is a client-side library that broadcasts messages to all of a user's open windows / tabs (open to your site, of course). A [socket.io binding](#using-with-socketio) is built in—which allows a single socket connection to painlessly propagate messages to all windows.
 
-The service is built on top of the [HTML5 sessionStorage API](http://www.w3.org/TR/webstorage/#the-sessionstorage-attribute).
+The service is built on top of the [HTML5 localStorage API](http://www.w3.org/TR/webstorage/#the-localstorage-attribute).
 
 ## Usage
 
