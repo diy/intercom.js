@@ -37,32 +37,6 @@ EventEmitter.prototype.trigger = function(name) {
 	}
 };var util = {};
 
-util.isArray = Array.isArray || function(object) {
-	Object.prototype.toString.call(v) === '[object Array]';
-};
-
-util.clone = function(object) {
-	var result;
-	
-	if (util.isArray(object)) {
-		result = [];
-		for (var i = 0; i < object.length; i++) {
-			result.push(object[i]);
-		}
-	} else if (typeof object === 'object') {
-		result = {};
-		for (var key in object) {
-			if (object.hasOwnProperty(key)) {
-				result[key] = object[key];
-			}
-		}
-	} else {
-		result = object;
-	}
-	
-	return result;
-};
-
 util.guid = (function() {
 	var S4 = function() {
 		return (((1 + Math.random()) * 0x10000) | 0).toString(16).substring(1);
@@ -96,6 +70,7 @@ var Intercom = function() {
 	this.origin      = util.guid();
 	this.lastMessage = now;
 	this.lastCleanup = now;
+	this.bindings    = [];
 	
 	window.addEventListener('storage', function() {
 		self._onStorageEvent.apply(self, arguments);
@@ -144,14 +119,8 @@ Intercom.prototype._onStorageEvent = function(event) {
 	this._cleanup();
 };
 
-Intercom.prototype.bind = function(object, options) {
-	for (var i = 0; i < Intercom.bindings.length; i++) {
-		Intercom.bindings[i](object, options || null, this);
-	}
-};
-
-Intercom.prototype.emit = function(name, message) {
-	var message = {
+Intercom.prototype._emit = function(name, message) {
+	var packet = {
 		name      : name,
 		origin    : this.origin,
 		timestamp : (new Date()).getTime(),
@@ -160,10 +129,20 @@ Intercom.prototype.emit = function(name, message) {
 
 	var data = localStorage.getItem(this.key) || '[]';
 	var delimiter = (data === '[]') ? '' : ',';
-	data = [data.substring(0, data.length - 1), delimiter, JSON.stringify(message), ']'].join('');
+	data = [data.substring(0, data.length - 1), delimiter, JSON.stringify(packet), ']'].join('');
 	localStorage.setItem(this.key, data);
+	this.trigger(name, message);
+};
 
-	this.trigger(message.name, message.payload);
+Intercom.prototype.bind = function(object, options) {
+	for (var i = 0; i < Intercom.bindings.length; i++) {
+		var binding = Intercom.bindings[i].factory(object, options || null, this);
+		if (binding) { this.bindings.push(binding); }
+	}
+};
+
+Intercom.prototype.emit = function(name, message) {
+	this._emit.apply(this, arguments);
 	this.trigger('intercom:emit', name, message);
 };
 
@@ -177,29 +156,34 @@ Intercom.supported = (typeof localStorage !== 'undefined');/**
  *
  * @author Brian Reavis
  */
-
-Intercom.bindings.push(function(object, options, intercom) {
-	if (typeof object.socket === 'undefined') return;
-	var socket = object;
-	var watchedEvents = []; 
-
-	var onEvent = function(name, fn) {
-		if (watchedEvents.indexOf(name) === -1 && !/^(event|intercom):/.test(name)) {
+ 
+var SocketBinding = function(socket, options, intercom) {
+	var watchedEvents = [];
+	
+	var onEventAdded = function(name, fn) {
+		if (watchedEvents.indexOf(name) === -1) {
 			watchedEvents.push(name);
 			socket.on(name, function(data) {
-				intercom.emit(name, data);
+				intercom._emit(name, data);
 			});
 		}
 	};
 
 	for (var name in intercom.handlers) {
 		for (var i = 0; i < intercom.handlers[name].length; i++) {
-			onEvent(name, intercom.handlers[name][i]);
+			onEventAdded(name, intercom.handlers[name][i]);
 		}
 	}
-
-	intercom.on('event:on', onEvent);
+	
+	intercom.on('event:on', onEventAdded);
 	intercom.on('intercom:emit', function(name, message) {
 		socket.emit(name, message);
 	});
-}); return Intercom;})();
+};
+
+SocketBinding.factory = function(object, options, intercom) {
+	if (typeof object.socket === 'undefined') { return false };
+	return new SocketBinding(object, options, intercom);
+};
+
+Intercom.bindings.push(SocketBinding); return Intercom;})();

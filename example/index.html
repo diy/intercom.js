@@ -21,7 +21,6 @@
 				
 				intercom.on('notice', function(data) {
 					$messages.append($('<p>').text(data.message));
-				
 					document.title = '(' + $messages[0].childNodes.length + ') ' + title;
 				});
 				
