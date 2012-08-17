@@ -35,7 +35,13 @@ EventEmitter.prototype.trigger = function(name) {
 			this.handlers[name][i].apply(this.handlers[name][i], args);
 		}
 	}
-};var util = {};
+};var localStorage = window.localStorage;
+if (typeof localStorage === 'undefined') {
+	localStorage = {
+		getItem: function(){},
+		setItem: function(){}
+	};
+}var util = {};
 
 util.guid = (function() {
 	var S4 = function() {
