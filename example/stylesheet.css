@@ -1,0 +1,49 @@
+* { margin: 0; padding: 0; }
+
+body {
+	padding: 100px;
+	font-family: Helvetica, arial, sans-serif;
+	font-size: 14px;
+	color: #454545;
+	-webkit-font-smoothing: antialiased;
+}
+h1 {
+	font-size: 30px;
+	padding: 0 0 10px 0;
+	margin: 0 0 20px 0;
+	border-bottom: 1px solid #e8e8e8;
+}
+form {
+	padding: 15px;
+	background: #fafafa;
+	border-radius: 4px;
+}
+p {
+	margin: 0 0 15px 0;
+}
+input[type=text], textarea {
+	padding: 5px 7px;
+	border: 1px solid #a0a0a0;
+	box-shadow: inset 0 1px 1px rgba(0,0,0,0.15);
+	border-radius: 2px;
+}
+input[type=submit], button {
+	font-weight: bold;
+	padding: 6px 9px;
+	background: #303030;
+	border-radius: 3px;
+	border: 0 none;
+	color: #f8f8f8;
+	margin: 0 0 0 5px;
+	cursor: pointer;
+}
+#messages {
+	margin-top: 40px;
+}
+#messages p {
+	border-bottom: 1px solid #f2f2f2;
+	padding: 0 0 15px 0;
+}
+#messages p:last-child {
+	border-bottom: 0 none;
+}
