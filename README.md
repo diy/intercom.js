@@ -19,7 +19,7 @@ intercom.emit('notice', {message: 'Hello, all windows!'});
 
 ## Using with Socket.io
 
-With the [socket.io](http://socket.io/) binding it's easy set up the socket connection to broadcast messages it recieves to all open windows. Similarly, it's effortless to send messages over a single active socket from any open window (simply by calling `emit` on intercom).
+With the [socket.io](http://socket.io/) binding it's easy set up the socket connection to broadcast messages it receives to all open windows. Similarly, it's effortless to send messages over a single active socket from any open window (simply by calling `emit` on intercom).
 
 ```javascript
 intercom.bind(socket);
@@ -30,20 +30,20 @@ If you wish to override the default behavior to control whether the socket shoul
 ```javascript
 intercom.bind(socket, {
 	send    : false, // send messages to the socket from intercom
-	recieve : true   // read messages from the socket and broadcast them over intercom
+	receive : true   // read messages from the socket and broadcast them over intercom
 });
 ```
 
 ### Filtering Messages
 
-There could be some cases where you want fine control over what is or isn't read from / sent to the socket. The `transmit` and `recieve` options also accept callbacks that are invoked for each message to determine if it should be emitted. Returning `false` from either of these will cause the message to be ignored.
+There could be some cases where you want fine control over what is or isn't read from / sent to the socket. The `transmit` and `receive` options also accept callbacks that are invoked for each message to determine if it should be emitted. Returning `false` from either of these will cause the message to be ignored.
 
 ```javascript
 intercom.bind(socket, {
 	send: function(name, message) {
 		return message.socket;
 	},
-	recieve: function(name, message) {
+	receive: function(name, message) {
 		return message.broadcast;
 	}
 });
@@ -59,6 +59,20 @@ intercom.emit('notice', {
 ```
 
 Similarly, only messages coming from the socket that have `broadcast` set to true will be picked up by intercom.
+
+### Uniqueness Contraints
+
+In the case of multiple sockets in different windows possibly emitting the same message, use the `id` option to ensure it's only acknowledged once by each window.
+
+```javascript
+intercom.bind(socket, {
+	id: function(name, message) {
+		return name + message.id;
+	}
+});
+```
+
+This requires you to send a unique identifier for each message from the socket.io source.
 
 ## License
 

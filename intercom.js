@@ -74,6 +74,7 @@ var Intercom = function() {
 	this.lastMessage = now;
 	this.lastCleanup = now;
 	this.bindings    = [];
+	this.receivedIDs = {};
 	
 	window.addEventListener('storage', function() {
 		self._onStorageEvent.apply(self, arguments);
@@ -114,6 +115,7 @@ Intercom.prototype._onStorageEvent = function(event) {
 		for (var i = 0; i < messages.length; i++) {
 			if (messages[i].origin === this.origin) continue;
 			if (messages[i].timestamp < this.lastMessage) continue;
+			if (messages[i].id && this.receivedIDs.hasOwnProperty(messages[i].id)) continue;
 			this.trigger(messages[i].name, messages[i].payload);
 		}
 		this.lastMessage = now;
@@ -122,8 +124,15 @@ Intercom.prototype._onStorageEvent = function(event) {
 	this._cleanup();
 };
 
-Intercom.prototype._emit = function(name, message) {
+Intercom.prototype._emit = function(name, message, id) {
+	id = (typeof id === 'string' || typeof id === 'number') ? String(id) : null;
+	if (id && id.length) {
+		if (this.receivedIDs.hasOwnProperty(id)) return;
+		this.receivedIDs[id] = true;
+	}
+	
 	var packet = {
+		id        : id,
 		name      : name,
 		origin    : this.origin,
 		timestamp : (new Date()).getTime(),
@@ -172,9 +181,10 @@ var SocketBinding = function(socket, options, intercom) {
 			if (watchedEvents.indexOf(name) === -1) {
 				watchedEvents.push(name);
 				socket.on(name, function(data) {
+					var id = (typeof options.id === 'function') ? options.id(name, data) : null;
 					var emit = (typeof options.receive === 'function') ? options.receive(name, data) : true;
 					if (emit || typeof emit !== 'boolean') {
-						intercom._emit(name, data);
+						intercom._emit(name, data, id);
 					}
 				});
 			}
