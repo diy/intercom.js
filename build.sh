@@ -3,6 +3,7 @@
 out=intercom.js
 out_min=intercom.min.js
 files=""
+banner="/*! intercom.js | https://github.com/diy/intercom.js | Apache License (v2) */"
 
 for file in lib/*.js; do
 	if [ "$file" != "lib/intercom.js" ]; then
@@ -25,3 +26,5 @@ curl -s -d compilation_level=SIMPLE_OPTIMIZATIONS \
 		--data-urlencode "js_code@$out" \
         http://closure-compiler.appspot.com/compile \
         > $out_min
+
+echo "$banner" | cat - $out_min > temp && mv temp $out_min
