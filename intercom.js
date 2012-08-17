@@ -67,7 +67,7 @@ util.extend = function(a, b) {
  * of the HTML5 localStorage API. The interface
  * mimic socket.io in design.
  *
- * @author Brian Reavis
+ * @author Brian Reavis <brian@thirdroute.com>
  * @constructor
  */
 
@@ -121,7 +121,10 @@ Intercom.prototype._onStorageEvent = function(event) {
 		for (var i = 0; i < messages.length; i++) {
 			if (messages[i].origin === this.origin) continue;
 			if (messages[i].timestamp < this.lastMessage) continue;
-			if (messages[i].id && this.receivedIDs.hasOwnProperty(messages[i].id)) continue;
+			if (messages[i].id) {
+				if (this.receivedIDs.hasOwnProperty(messages[i].id)) continue;
+				this.receivedIDs.push(messages[i].id);
+			}
 			this.trigger(messages[i].name, messages[i].payload);
 		}
 		this.lastMessage = now;
@@ -172,7 +175,7 @@ Intercom.supported = (typeof localStorage !== 'undefined');/**
  * - When a message is received on the socket, it's emitted on intercom.
  * - When a message is emitted via intercom, it's sent over the socket.
  *
- * @author Brian Reavis
+ * @author Brian Reavis <brian@thirdroute.com>
  */
  
 var SocketBinding = function(socket, options, intercom) {
