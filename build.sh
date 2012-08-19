@@ -1,24 +1,31 @@
 #!/bin/bash
-
+IFS='%'
 out=intercom.js
 out_min=intercom.min.js
-files=""
 banner="/*! intercom.js | https://github.com/diy/intercom.js | Apache License (v2) */"
 
+append_file () {
+	src=`cat $2 | sed 's/^ *//g' | sed 's/ *$//g'`
+	echo -e "$1\n\n// --- $2 ---\n\n$src"
+}
+
+# bundle files...
+
+src=""
 for file in lib/*.js; do
-	if [ "$file" != "lib/intercom.js" ]; then
-		files="${files} $file"
-	fi
+	if [ "$file" != "lib/intercom.js" ]; then src=`append_file "$src" $file`; fi
 done
+src=`append_file "$src" lib/intercom.js`
+for file in lib/bindings/*.js; do src=`append_file "$src" $file`; done
 
-files="${files} lib/intercom.js"
+# format and wrap...
 
-for file in lib/bindings/*.js; do files="${files} $file"; done
+src=`echo -e "$src" | while read line; do echo -e "\t$line"; done`
+src="$banner\n\nvar Intercom = (function() {$src\n\treturn Intercom;\n})();"
 
-src=$(cat $files)
-src="var Intercom=(function(){$src return Intercom;})();"
+echo -e "$src" > $out
 
-echo "$src" > $out
+# generate minified version...
 
 curl -s -d compilation_level=SIMPLE_OPTIMIZATIONS \
         -d output_format=text \
@@ -28,3 +35,5 @@ curl -s -d compilation_level=SIMPLE_OPTIMIZATIONS \
         > $out_min
 
 echo "$banner" | cat - $out_min > temp && mv temp $out_min
+
+unset IFS
