@@ -48,8 +48,9 @@ var Intercom = (function() {
 	var localStorage = window.localStorage;
 	if (typeof localStorage === 'undefined') {
 		localStorage = {
-			getItem: function() {},
-			setItem: function() {}
+			getItem    : function() {},
+			setItem    : function() {},
+			removeItem : function() {}
 		};
 	}
 	
@@ -93,7 +94,6 @@ var Intercom = (function() {
 		var self = this;
 		var now = (new Date()).getTime();
 			
-		this.key         = 'intercom';
 		this.origin      = util.guid();
 		this.lastMessage = now;
 		this.lastCleanup = now;
@@ -105,37 +105,64 @@ var Intercom = (function() {
 		});
 	};
 	
-	Intercom.prototype._cleanup = function() {
-		var THRESHOLD_THROTTLE = 50;
+	Intercom.prototype._cleanup_emit = function() {
 		var THRESHOLD_TTL = 1000;
 		
 		var now = (new Date()).getTime();
-		if (now - this.lastCleanup < THRESHOLD_THROTTLE) return;
-		this.lastCleanup = now;
-		
 		var threshold = now - THRESHOLD_TTL;
-		var messages = JSON.parse(localStorage.getItem(this.key) || '[]');
-		if (!messages.length) return;
+		var changed = 0;
 		
-		var removed = 0;
+		var messages = JSON.parse(localStorage.getItem(INDEX_EMIT) || '[]');
 		for (var i = messages.length - 1; i >= 0; i--) {
 			if (messages[i].timestamp < threshold) {
 				messages.splice(i, 1);
-				removed++;
+				changed++;
 			}
 		}
-		
-		if (removed > 0) {
-			localStorage.setItem(this.key, JSON.stringify(messages));
+		if (changed > 0) {
+			localStorage.setItem(INDEX_EMIT, JSON.stringify(messages));
 		}
+	};
+	
+	Intercom.prototype._cleanup_once = function() {
+		var THRESHOLD_TTL = 1000 * 3600;
+		
+		var now = (new Date()).getTime();
+		var threshold = now - THRESHOLD_TTL;
+		var changed = 0;
+		
+		var table = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
+		for (var key in table) {
+			if (table.hasOwnProperty(key)) {
+				if (table[key] < threshold) {
+					delete table[key];
+					changed++;
+				}
+			}
+		}
+		if (changed > 0) {
+			localStorage.setItem(INDEX_ONCE, JSON.stringify(table));
+		}
+	};
+	
+	Intercom.prototype._cleanup = function() {
+		var THRESHOLD_THROTTLE = 50;
+		var now = (new Date()).getTime();
+		if (now - this.lastCleanup < THRESHOLD_THROTTLE) {
+			return;
+		}
+		
+		this.lastCleanup = now;
+		this._cleanup_emit();
+		this._cleanup_once();
 	};
 	
 	Intercom.prototype._onStorageEvent = function(event) {
 		var now = (new Date()).getTime();
 		var key = event && event.key;
 		
-		if (!key || key === this.key) {
-			var messages = JSON.parse(localStorage.getItem(this.key) || '[]');
+		if (!key || key === INDEX_EMIT) {
+			var messages = JSON.parse(localStorage.getItem(INDEX_EMIT) || '[]');
 			for (var i = 0; i < messages.length; i++) {
 				if (messages[i].origin === this.origin) continue;
 				if (messages[i].timestamp < this.lastMessage) continue;
@@ -166,10 +193,10 @@ var Intercom = (function() {
 			payload   : message
 		};
 	
-		var data = localStorage.getItem(this.key) || '[]';
+		var data = localStorage.getItem(INDEX_EMIT) || '[]';
 		var delimiter = (data === '[]') ? '' : ',';
 		data = [data.substring(0, data.length - 1), delimiter, JSON.stringify(packet), ']'].join('');
-		localStorage.setItem(this.key, data);
+		localStorage.setItem(INDEX_EMIT, data);
 		this.trigger(name, message);
 	};
 	
@@ -185,10 +212,27 @@ var Intercom = (function() {
 		this.trigger('intercom:emit', name, message);
 	};
 	
+	Intercom.prototype.once = function(key, fn) {
+		if (!Intercom.supported) return;
+		var data = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
+		if (data.hasOwnProperty(key)) return;
+		data[key] = (new Date()).getTime();
+		localStorage.setItem(INDEX_ONCE, JSON.stringify(data));
+		fn();
+	};
+	
 	util.extend(Intercom.prototype, EventEmitter.prototype);
 	
 	Intercom.bindings = [];
 	Intercom.supported = (typeof localStorage !== 'undefined');
+	
+	var INDEX_EMIT = 'intercom';
+	var INDEX_ONCE = 'intercom_once';
+	
+	Intercom.destroy = function() {
+		localStorage.removeItem(INDEX_EMIT);
+		localStorage.removeItem(INDEX_ONCE);
+	};
 	
 	// --- lib/bindings/socket.js ---
 	

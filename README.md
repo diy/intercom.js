@@ -75,6 +75,24 @@ intercom.bind(socket, {
 
 This requires you to send a unique identifier for each message from the socket.io source.
 
+## Methods
+
+### .emit(name, message)
+
+Broadcasts a message to all open windows (including the current window).
+
+### .on(name, fn)
+
+Sets up a listener to be invoked when a message with the given name is received.
+
+### .once(key, fn)
+
+Given a unique unique key to represent the function, `fn` will be invoked in only one window.
+
+### Intercom.destroy()
+
+Removes all data associated with intercom from `localStorage`.
+
 ## License
 
 Copyright &copy; 2012 DIY Co
