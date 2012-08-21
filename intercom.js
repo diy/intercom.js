@@ -168,7 +168,7 @@ var Intercom = (function() {
 				if (messages[i].timestamp < this.lastMessage) continue;
 				if (messages[i].id) {
 					if (this.receivedIDs.hasOwnProperty(messages[i].id)) continue;
-					this.receivedIDs.push(messages[i].id);
+					this.receivedIDs[messages[i].id] = true;
 				}
 				this.trigger(messages[i].name, messages[i].payload);
 			}
