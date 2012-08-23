@@ -6,42 +6,51 @@ var Intercom = (function() {
 	
 	var EventEmitter = function() {};
 	
-	EventEmitter.prototype.on = function(name, fn) {
-		if (typeof this.handlers === 'undefined') {
-			this.handlers = {};
-		}
-		if (!this.handlers.hasOwnProperty(name)) {
-			this.handlers[name] = [];
-		}
-		this.handlers[name].push(fn);
+	EventEmitter.createInterface = function(space) {
+		var methods = {};
 		
-		var args = ['event:on'];
-		for (var i = 0; i < arguments.length; i++) {
-			args.push(arguments[i]);
-		}
-		this.trigger.apply(this, args);
-	};
-	
-	EventEmitter.prototype.off = function(name, fn) {
-		if (typeof this.handlers === 'undefined') return;
+		methods.on = function(name, fn) {
+			if (typeof this[space] === 'undefined') {
+				this[space] = {};
+			}
+			if (!this[space].hasOwnProperty(name)) {
+				this[space][name] = [];
+			}
+			this[space][name].push(fn);
+		};
 		
-		if (this.handlers.hasOwnProperty(name)) {
-			for (var i = this.handlers[name].length - 1; i >= 0; i--) {
-				if (this.handlers[name][i] === fn) {
-					this.handlers[name].splice(i, 1);
+		methods.off = function(name, fn) {
+			if (typeof this[space] === 'undefined') return;
+			if (this[space].hasOwnProperty(name)) {
+				util.removeItem(fn, this[space][name]);
+			}
+		};
+		
+		methods.trigger = function(name) {
+			if (typeof this[space] !== 'undefined' && this[space].hasOwnProperty(name)) {
+				var args = Array.prototype.slice.call(arguments, 1);
+				for (var i = 0; i < this[space][name].length; i++) {
+					this[space][name][i].apply(this[space][name][i], args);
 				}
 			}
-		}
+		};
+		
+		return methods;
 	};
 	
-	EventEmitter.prototype.trigger = function(name) {
-		if (typeof this.handlers !== 'undefined' && this.handlers.hasOwnProperty(name)) {
-			var args = Array.prototype.slice.call(arguments, 1);
-			for (var i = 0; i < this.handlers[name].length; i++) {
-				this.handlers[name][i].apply(this.handlers[name][i], args);
-			}
-		}
+	var pvt = EventEmitter.createInterface('_handlers');
+	EventEmitter.prototype._on = pvt.on;
+	EventEmitter.prototype._off = pvt.off;
+	EventEmitter.prototype._trigger = pvt.trigger;
+	
+	var pub = EventEmitter.createInterface('handlers');
+	EventEmitter.prototype.on = function() {
+		pub.on.apply(this, arguments);
+		Array.prototype.unshift.call(arguments, 'on');
+		this._trigger.apply(this, arguments);
 	};
+	EventEmitter.prototype.off = pub.off;
+	EventEmitter.prototype.trigger = pub.trigger;
 	
 	// --- lib/localstorage.js ---
 	
@@ -77,6 +86,15 @@ var Intercom = (function() {
 			}
 		}
 		return a;
+	};
+	
+	util.removeItem = function(item, array) {
+		for (var i = array.length - 1; i >= 0; i--) {
+			if (array[i] === item) {
+				array.splice(i, 1);
+			}
+		}
+		return array;
 	};
 	
 	// --- lib/intercom.js ---
@@ -121,7 +139,7 @@ var Intercom = (function() {
 			var activeLock = parseInt(localStorage.getItem(INDEX_LOCK) || 0);
 			if (activeLock && now - activeLock < TIMEOUT) {
 				if (!listening) {
-					self.on('intercom:storage', lock);
+					self._on('storage', lock);
 					listening = true;
 				}
 				waitTimer = window.setTimeout(lock, WAIT);
@@ -135,7 +153,7 @@ var Intercom = (function() {
 		};
 	
 		var unlock = function() {
-			if (listening) { self.off('intercom:storage', lock); }
+			if (listening) { self._off('storage', lock); }
 			if (waitTimer) { window.clearTimeout(waitTimer); }
 			localStorage.removeItem(INDEX_LOCK);
 		};
@@ -224,7 +242,7 @@ var Intercom = (function() {
 		}
 	
 		window.setTimeout(function() { self._cleanup(); }, 50);
-		this.trigger('intercom:storage', event);
+		this._trigger('storage', event);
 	};
 	
 	Intercom.prototype._emit = function(name, message, id) {
@@ -261,7 +279,7 @@ var Intercom = (function() {
 	
 	Intercom.prototype.emit = function(name, message) {
 		this._emit.apply(this, arguments);
-		this.trigger('intercom:emit', name, message);
+		this._trigger('emit', name, message);
 	};
 	
 	Intercom.prototype.once = function(key, fn) {
@@ -330,11 +348,11 @@ var Intercom = (function() {
 				}
 			}
 		
-			intercom.on('event:on', onEventAdded);
+			intercom._on('on', onEventAdded);
 		}
 		
 		if (options.send) {
-			intercom.on('intercom:emit', function(name, message) {
+			intercom._on('emit', function(name, message) {
 				var emit = (typeof options.send === 'function') ? options.send(name, message) : true;
 				if (emit || typeof emit !== 'boolean') {
 					socket.emit(name, message);
