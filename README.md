@@ -5,6 +5,8 @@ Intercom is a client-side library that broadcasts messages to all of a user's op
 
 The service is built on top of the [HTML5 localStorage API](http://www.w3.org/TR/webstorage/#the-localstorage-attribute).
 
+**Browser Support** ([chart](http://caniuse.com/#search=webstorage)): IE8+, Firefox 3.6+, Chrome 4+, Safari 4+, Opera 10.5+
+
 ### Basic Usage
 
 ```javascript

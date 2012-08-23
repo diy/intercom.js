@@ -118,9 +118,9 @@ var Intercom = (function() {
 		this.bindings    = [];
 		this.receivedIDs = {};
 		
-		window.addEventListener('storage', function() {
-			self._onStorageEvent.apply(self, arguments);
-		});
+		var storageHandler = function() { self._onStorageEvent.apply(self, arguments); };
+		if (window.attachEvent) { document.attachEvent('onstorage', storageHandler); }
+		else { window.addEventListener('storage', storageHandler, false); };
 	};
 	
 	Intercom.prototype._transaction = function(fn) {
@@ -220,6 +220,8 @@ var Intercom = (function() {
 	};
 	
 	Intercom.prototype._onStorageEvent = function(event) {
+		event = event || window.event;
+		
 		var key = event && event.key;
 		var self = this;
 	
