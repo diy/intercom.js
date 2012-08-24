@@ -132,19 +132,6 @@ var Intercom = (function() {
 		else { window.addEventListener('storage', storageHandler, false); };
 	};
 	
-	Intercom.prototype._localStorageChanged = function(event, field) {
-		if (event && event.key) {
-			return event.key === field;
-		}
-	
-		var currentValue = localStorage.getItem(field);
-		if (currentValue === this.previousValues[field]) {
-			return false;
-		}
-		this.previousValues[field] = currentValue;
-		return true;
-	}
-	
 	Intercom.prototype._transaction = function(fn) {
 		var TIMEOUT   = 1000;
 		var WAIT      = 20;
@@ -228,6 +215,19 @@ var Intercom = (function() {
 			}
 		});
 	});
+	
+	Intercom.prototype._localStorageChanged = function(event, field) {
+		if (event && event.key) {
+			return event.key === field;
+		}
+	
+		var currentValue = localStorage.getItem(field);
+		if (currentValue === this.previousValues[field]) {
+			return false;
+		}
+		this.previousValues[field] = currentValue;
+		return true;
+	};
 	
 	Intercom.prototype._onStorageEvent = function(event) {
 		event = event || window.event;
