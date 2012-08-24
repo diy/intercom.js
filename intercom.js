@@ -76,6 +76,15 @@ var Intercom = (function() {
 		};
 	})();
 	
+	util.throttle = function(delay, fn) {
+		var last = 0;
+		return function() {
+			if ((new Date()).getTime() - last > delay) {
+				fn.apply(this, arguments);
+			}
+		};
+	};
+	
 	util.extend = function(a, b) {
 		if (typeof a === 'undefined' || !a) { a = {}; }
 		if (typeof b === 'object') {
@@ -111,17 +120,30 @@ var Intercom = (function() {
 	var Intercom = function() {
 		var self = this;
 		var now = (new Date()).getTime();
-			
-		this.origin      = util.guid();
-		this.lastMessage = now;
-		this.lastCleanup = now;
-		this.bindings    = [];
-		this.receivedIDs = {};
-		
+	
+		this.origin         = util.guid();
+		this.lastMessage    = now;
+		this.bindings       = [];
+		this.receivedIDs    = {};
+		this.previousValues = {};
+	
 		var storageHandler = function() { self._onStorageEvent.apply(self, arguments); };
 		if (window.attachEvent) { document.attachEvent('onstorage', storageHandler); }
 		else { window.addEventListener('storage', storageHandler, false); };
 	};
+	
+	Intercom.prototype._localStorageChanged = function(event, field) {
+		if (event && event.key) {
+			return event.key === field;
+		}
+	
+		var currentValue = localStorage.getItem(field);
+		if (currentValue === this.previousValues[field]) {
+			return false;
+		}
+		this.previousValues[field] = currentValue;
+		return true;
+	}
 	
 	Intercom.prototype._transaction = function(fn) {
 		var TIMEOUT   = 1000;
@@ -161,15 +183,15 @@ var Intercom = (function() {
 		lock();
 	};
 	
-	Intercom.prototype._cleanup_emit = function() {
+	Intercom.prototype._cleanup_emit = util.throttle(100, function() {
 		var THRESHOLD_TTL = 50000;
 		var self = this;
-		
+	
 		this._transaction(function() {
 			var now = (new Date()).getTime();
 			var threshold = now - THRESHOLD_TTL;
 			var changed = 0;
-			
+	
 			var messages = JSON.parse(localStorage.getItem(INDEX_EMIT) || '[]');
 			for (var i = messages.length - 1; i >= 0; i--) {
 				if (messages[i].timestamp < threshold) {
@@ -181,17 +203,17 @@ var Intercom = (function() {
 				localStorage.setItem(INDEX_EMIT, JSON.stringify(messages));
 			}
 		});
-	};
+	});
 	
-	Intercom.prototype._cleanup_once = function() {
+	Intercom.prototype._cleanup_once = util.throttle(100, function() {
 		var THRESHOLD_TTL = 1000 * 3600;
 		var self = this;
-		
+	
 		this._transaction(function() {
 			var now = (new Date()).getTime();
 			var threshold = now - THRESHOLD_TTL;
 			var changed = 0;
-			
+	
 			var table = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
 			for (var key in table) {
 				if (table.hasOwnProperty(key)) {
@@ -205,27 +227,13 @@ var Intercom = (function() {
 				localStorage.setItem(INDEX_ONCE, JSON.stringify(table));
 			}
 		});
-	};
-	
-	Intercom.prototype._cleanup = function() {
-		var THRESHOLD_THROTTLE = 50;
-		var now = (new Date()).getTime();
-		if (now - this.lastCleanup < THRESHOLD_THROTTLE) {
-			return;
-		}
-		
-		this.lastCleanup = now;
-		this._cleanup_emit();
-		this._cleanup_once();
-	};
+	});
 	
 	Intercom.prototype._onStorageEvent = function(event) {
 		event = event || window.event;
-		
-		var key = event && event.key;
 		var self = this;
 	
-		if (!key || key === INDEX_EMIT) {
+		if (this._localStorageChanged(event, INDEX_EMIT)) {
 			this._transaction(function() {
 				var now = (new Date()).getTime();
 				var data = localStorage.getItem(INDEX_EMIT);
@@ -243,7 +251,6 @@ var Intercom = (function() {
 			});
 		}
 	
-		window.setTimeout(function() { self._cleanup(); }, 50);
 		this._trigger('storage', event);
 	};
 	
@@ -253,7 +260,7 @@ var Intercom = (function() {
 			if (this.receivedIDs.hasOwnProperty(id)) return;
 			this.receivedIDs[id] = true;
 		}
-		
+	
 		var packet = {
 			id        : id,
 			name      : name,
@@ -269,6 +276,8 @@ var Intercom = (function() {
 			data = [data.substring(0, data.length - 1), delimiter, JSON.stringify(packet), ']'].join('');
 			localStorage.setItem(INDEX_EMIT, data);
 			self.trigger(name, message);
+	
+			window.setTimeout(function() { self._cleanup_emit(); }, 50);
 		});
 	};
 	
@@ -287,12 +296,15 @@ var Intercom = (function() {
 	Intercom.prototype.once = function(key, fn) {
 		if (!Intercom.supported) return;
 	
+		var self = this;
 		this._transaction(function() {
 			var data = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
 			if (data.hasOwnProperty(key)) return;
 			data[key] = (new Date()).getTime();
 			localStorage.setItem(INDEX_ONCE, JSON.stringify(data));
 			fn();
+	
+			window.setTimeout(function() { self._cleanup_once(); }, 50);
 		});
 	};
 	
