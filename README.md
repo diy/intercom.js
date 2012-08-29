@@ -39,7 +39,7 @@ intercom.bind(socket, {
 
 ### Filtering Messages
 
-There could be some cases where you want fine control over what is or isn't read from / sent to the socket. The `transmit` and `receive` options also accept callbacks that are invoked for each message to determine if it should be emitted. Returning `false` from either of these will cause the message to be ignored.
+There could be some cases where you want fine control over what is or isn't read from / sent to the socket. The `send` and `receive` options also accept callbacks that are invoked for each message to determine if it should be emitted. Returning `false` from either of these will cause the message to be ignored.
 
 ```javascript
 intercom.bind(socket, {
