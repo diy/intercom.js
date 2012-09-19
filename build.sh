@@ -6,7 +6,7 @@ banner="/*! intercom.js | https://github.com/diy/intercom.js | Apache License (v
 
 append_file () {
 	src=`cat $2 | sed 's/^ *//g' | sed 's/ *$//g'`
-	echo -e "$1\n\n// --- $2 ---\n\n$src"
+	echo -eE "$1\n\n// --- $2 ---\n\n$src"
 }
 
 # bundle files...

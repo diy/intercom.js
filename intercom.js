@@ -79,7 +79,9 @@ var Intercom = (function() {
 	util.throttle = function(delay, fn) {
 		var last = 0;
 		return function() {
-			if ((new Date()).getTime() - last > delay) {
+			var now = (new Date()).getTime();
+			if (now - last > delay) {
+				last = now;
 				fn.apply(this, arguments);
 			}
 		};
