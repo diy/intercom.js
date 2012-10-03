@@ -325,6 +325,16 @@ var Intercom = (function() {
 		localStorage.removeItem(INDEX_ONCE);
 	};
 	
+	Intercom.getInstance = (function() {
+		var intercom = null;
+		return function() {
+			if (!intercom) {
+				intercom = new Intercom();
+			}
+			return intercom;
+		};
+	})();
+	
 	// --- lib/bindings/socket.js ---
 	
 	/**

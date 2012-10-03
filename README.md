@@ -11,7 +11,7 @@ The service is built on top of the [HTML5 localStorage API](http://www.w3.org/TR
 
 ```javascript
 // run this in multiple tabs!
-var intercom = new Intercom();
+var intercom = Intercom.getInstance();
 
 intercom.on('notice', function(data) {
 	console.log(data.message);
@@ -94,6 +94,10 @@ Given a unique unique key to represent the function, `fn` will be invoked in onl
 ### Intercom.destroy()
 
 Removes all data associated with intercom from `localStorage`.
+
+### Intercom.getInstance()
+
+Returns an instance of Intercom. If one doesn't exist, it will be instantiated.
 
 ## License
 
