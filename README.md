@@ -87,9 +87,9 @@ Broadcasts a message to all open windows (including the current window).
 
 Sets up a listener to be invoked when a message with the given name is received.
 
-### .once(key, fn)
+### .once(key, fn, [ttl])
 
-Given a unique unique key to represent the function, `fn` will be invoked in only one window.
+Given a unique unique key to represent the function, `fn` will be invoked in only one window. The `ttl` argument represents the number of seconds before the function can be called again.
 
 ### Intercom.destroy()
 

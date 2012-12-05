@@ -173,12 +173,11 @@ var Intercom = (function() {
 	};
 	
 	Intercom.prototype._cleanup_emit = util.throttle(100, function() {
-		var THRESHOLD_TTL = 50000;
 		var self = this;
 	
 		this._transaction(function() {
 			var now = (new Date()).getTime();
-			var threshold = now - THRESHOLD_TTL;
+			var threshold = now - THRESHOLD_TTL_EMIT;
 			var changed = 0;
 	
 			var messages = JSON.parse(localStorage.getItem(INDEX_EMIT) || '[]');
@@ -195,28 +194,36 @@ var Intercom = (function() {
 	});
 	
 	Intercom.prototype._cleanup_once = util.throttle(100, function() {
-		var THRESHOLD_TTL = 1000 * 3600;
 		var self = this;
 	
 		this._transaction(function() {
-			var now = (new Date()).getTime();
-			var threshold = now - THRESHOLD_TTL;
+			var timestamp, ttl, key;
+			var table   = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
+			var now     = (new Date()).getTime();
 			var changed = 0;
 	
-			var table = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
-			for (var key in table) {
-				if (table.hasOwnProperty(key)) {
-					if (table[key] < threshold) {
-						delete table[key];
-						changed++;
-					}
+			for (key in table) {
+				if (self._once_expired(key, table)) {
+					delete table[key];
+					changed++;
 				}
 			}
+	
 			if (changed > 0) {
 				localStorage.setItem(INDEX_ONCE, JSON.stringify(table));
 			}
 		});
 	});
+	
+	Intercom.prototype._once_expired = function(key, table) {
+		if (!table) return true;
+		if (!table.hasOwnProperty(key)) return true;
+		if (typeof table[key] !== 'object') return true;
+		var ttl = table[key].ttl || THRESHOLD_TTL_ONCE;
+		var now = (new Date()).getTime();
+		var timestamp = table[key].timestamp;
+		return timestamp < now - ttl;
+	};
 	
 	Intercom.prototype._localStorageChanged = function(event, field) {
 		if (event && event.key) {
@@ -295,14 +302,20 @@ var Intercom = (function() {
 		this._trigger('emit', name, message);
 	};
 	
-	Intercom.prototype.once = function(key, fn) {
+	Intercom.prototype.once = function(key, fn, ttl) {
 		if (!Intercom.supported) return;
 	
 		var self = this;
 		this._transaction(function() {
 			var data = JSON.parse(localStorage.getItem(INDEX_ONCE) || '{}');
-			if (data.hasOwnProperty(key)) return;
-			data[key] = (new Date()).getTime();
+			if (!self._once_expired(key, data)) return;
+	
+			data[key] = {};
+			data[key].timestamp = (new Date()).getTime();
+			if (typeof ttl === 'number') {
+				data[key].ttl = ttl * 1000;
+			}
+	
 			localStorage.setItem(INDEX_ONCE, JSON.stringify(data));
 			fn();
 	
@@ -318,6 +331,9 @@ var Intercom = (function() {
 	var INDEX_EMIT = 'intercom';
 	var INDEX_ONCE = 'intercom_once';
 	var INDEX_LOCK = 'intercom_lock';
+	
+	var THRESHOLD_TTL_EMIT = 50000;
+	var THRESHOLD_TTL_ONCE = 1000 * 3600;
 	
 	Intercom.destroy = function() {
 		localStorage.removeItem(INDEX_LOCK);
