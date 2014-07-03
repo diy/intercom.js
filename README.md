@@ -1,11 +1,13 @@
 ![intercom.js](https://raw.github.com/diy/intercom.js/master/logo.png)
+
 ### Cross-Window Message Broadcast Interface
 
 Intercom is a client-side library that allows one window to broadcast messages to all other open windows / tabs (open to your site, of course). A [socket.io binding](#using-with-socketio) is built in—which allows a single socket connection to painlessly propagate messages to all windows. Useful for chat services, notifications, and more.
 
 The service is built on top of the [HTML5 localStorage API](http://www.w3.org/TR/webstorage/#the-localstorage-attribute).
 
-**Browser Support** ([chart](http://caniuse.com/#search=webstorage)): IE8+, Firefox 3.6+, Chrome 4+, Safari 4+, Opera 10.5+
+**Browser Support** ([chart](http://caniuse.com/#search=webstorage)):
+IE8+, Firefox 3.6+, Chrome 4+, Safari 4+, Opera 10.5+
 
 ### Basic Usage
 
@@ -63,9 +65,10 @@ intercom.emit('notice', {
 
 Similarly, only messages coming from the socket that have `broadcast` set to true will be picked up by intercom.
 
-### Uniqueness Contraints
+### Uniqueness Constraints
 
-In the case of multiple sockets in different windows possibly emitting the same message, use the `id` option to ensure it's only acknowledged once by each window.
+In the case of multiple sockets in different windows possibly emitting the same message, use
+the `id` option to ensure it's only acknowledged once by each window.
 
 ```javascript
 intercom.bind(socket, {
