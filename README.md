@@ -1,3 +1,7 @@
+## This repository is no longer maintained by DIY.
+If you wish to maintain or add to it, we encourage you to fork this repository. If a maintained fork emerges, please file a ticket to let us know so we can point to it here.
+<hr>
+
 ![intercom.js](https://raw.github.com/diy/intercom.js/master/logo.png)
 
 ### Cross-Window Message Broadcast Interface
