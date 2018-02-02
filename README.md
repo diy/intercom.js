@@ -86,9 +86,17 @@ This requires you to send a unique identifier for each message from the socket.i
 
 ## Methods
 
-### .emit(name, message)
+### .bind(object, options)
 
-Broadcasts a message to all open windows (including the current window).
+Adds new binding.
+
+### .emit(name, message, [id])
+
+Broadcasts a message to all open windows (including the current window), with optional identifier.
+
+### .off(name, fn)
+
+Removes `fn` listener for messages with the given name.
 
 ### .on(name, fn)
 
@@ -97,6 +105,10 @@ Sets up a listener to be invoked when a message with the given name is received.
 ### .once(key, fn, [ttl])
 
 Given a unique unique key to represent the function, `fn` will be invoked in only one window. The `ttl` argument represents the number of seconds before the function can be called again.
+
+### .trigger(name)
+
+Manually triggers callbacks for `name`, passing additional parameters as callback arguments.
 
 ### Intercom.destroy()
 
